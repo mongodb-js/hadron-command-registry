@@ -1,7 +1,7 @@
 {
   "name": "hadron-command-registry",
   "description": "Atom's CommandRegistry extracted to a standalone module.",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "hadron-command-registry.js",
   "scripts": {
     "test": "electron-mocha --renderer",
