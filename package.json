@@ -1,0 +1,29 @@
+{
+  "name": "hadron-command-registry",
+  "description": "Atom's CommandRegistry extracted to a standalone module.",
+  "version": "0.0.0",
+  "main": "hadron-command-registry.js",
+  "scripts": {
+    "test": "electron-mocha --renderer",
+    "ci": "npm test"
+  },
+  "homepage": "http://github.com/mongodb-js/hadron-command-registry",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mongodb-js/hadron-command-registry.git"
+  },
+  "dependencies": {
+    "clear-cut": "^2.0.1",
+    "event-kit": "^2.0.0"
+  },
+  "devDependencies": {
+    "electron-mocha": "^1.0.2",
+    "electron-prebuilt": "^0.37.4",
+    "mocha": "^2.3.4",
+    "pre-commit": "^1.1.2"
+  },
+  "license": "Apache-2.0",
+  "precommit": [
+    "check"
+  ]
+}
