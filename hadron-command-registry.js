@@ -194,7 +194,7 @@ class CommandRegistry {
   /**
    * Find all registered commands matching a query.
    *
-   * @param {Object} params One one or more of the following keys:
+   * @param {Object} arg One one or more of the following keys:
    *  - `target` A DOM node that is the hypothetical target of a given command.
    *
    * @returns {Array<Object>} With the following keys:
@@ -207,7 +207,7 @@ class CommandRegistry {
     const commands = [];
     let currentTarget = target;
     const searchInline = (listeners, name) => {
-      if (_.has(listeners, currentTarget) && !_.has(commandNames, name)) {
+      if (listeners.has(currentTarget) && !_.includes(commandNames, name)) {
         commandNames.add(name);
         commands.push({
           name: name,
@@ -275,10 +275,6 @@ class CommandRegistry {
     let immediatePropagationStopped = false;
     let matched = false;
     let currentTarget = event.target;
-    // const preventDefault = event.preventDefault;
-    // const stopPropagation = event.stopPropagation;
-    // const stopImmediatePropagation = event.stopImmediatePropagation;
-    // const abortKeyBinding = event.abortKeyBinding;
 
     const dispatchedEvent = new CustomEvent(event.type, {
       bubbles: true,
@@ -328,7 +324,7 @@ class CommandRegistry {
       }
     });
 
-    _.clone(dispatchedEvent, event);
+    _.cloneDeep(dispatchedEvent, event);
     this.emitter.emit('will-dispatch', dispatchedEvent);
 
     const listenerMatchesSelector = function(listener) {
