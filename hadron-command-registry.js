@@ -111,12 +111,11 @@ class CommandRegistry {
 
   destroy() {
     debug('destroying');
-    const destroyCommand = (commandName) => {
-      this.rootNode.removeEventListener(commandName,
-        this.handleCommandEvent, true);
-    };
-
-    Object.keys(this.registeredCommands).forEach(destroyCommand);
+    Object.keys(this.registeredCommands)
+      .forEach((commandName) => {
+        this.rootNode.removeEventListener(commandName,
+          this.handleCommandEvent, true);
+      });
   }
   /**
    * Add one or more command listeners associated with a selector.
@@ -159,6 +158,7 @@ class CommandRegistry {
     return this.addInlineListener(target, commandName, callback);
   }
   addSelectorBasedListener(selector, commandName, callback) {
+    debug('add listener for `%s` on selector `%s`', commandName, selector);
     if (!this.selectorBasedListenersByCommandName[commandName]) {
       this.selectorBasedListenersByCommandName[commandName] = [];
     }
@@ -248,6 +248,10 @@ class CommandRegistry {
     return commands;
   }
   dispatch(target, commandName, detail) {
+    debug('dispatch command `%s`', commandName, {
+      target: target,
+      detail: detail
+    });
     const event = new CustomEvent(commandName, {
       bubbles: true,
       detail: detail
@@ -354,16 +358,20 @@ class CommandRegistry {
 
     /* eslint no-loop-func: 1 */
     while (true) {
-      const byType = this.inlineListenersByCommandName[event.type];
-      let listeners = byType && _.get(byType, currentTarget) || [];
+      const listeners = [];
+      if (this.inlineListenersByCommandName[event.type]) {
+        listeners.push.apply(listeners,
+          this.inlineListenersByCommandName[event.type].get(currentTarget));
+      }
 
-      if (_.isFunction(currentTarget.webkitMatchesSelector)) {
+      if (currentTarget.webkitMatchesSelector) {
         const selectorBasedListeners = (this.selectorBasedListenersByCommandName[event.type] || [])
           .filter(listenerMatchesSelector)
           .sort(selectorBasedCompare);
 
-        listeners = listeners.concat(selectorBasedListeners);
+        listeners.push.apply(listeners, selectorBasedListeners);
       }
+
       if (listeners.length > 0) {
         matched = true;
       }
@@ -384,6 +392,7 @@ class CommandRegistry {
       currentTarget = currentTarget.parentNode || window;
     }
     this.emitter.emit('did-dispatch', dispatchedEvent);
+    debug('matched?', matched);
     return matched;
   }
 
