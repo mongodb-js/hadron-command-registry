@@ -1,3 +1,5 @@
+'use strict';
+
 const format = require('util').format;
 const _ = require('lodash');
 
@@ -9,6 +11,7 @@ const eventKit = require('event-kit');
 const Emitter = eventKit.Emitter;
 const CompositeDisposable = eventKit.CompositeDisposable;
 const Disposable = eventKit.Disposable;
+const debug = require('debug')('hadron-command-registry');
 
 function undasherize(string) {
   string = string || '';
@@ -96,18 +99,24 @@ class CommandRegistry {
     this.emitter = new Emitter();
   }
   attach(rootNode) {
+    debug('attaching');
     this.rootNode = rootNode;
+
     _.each(this.selectorBasedListenersByCommandName,
       this.commandRegistered, this);
 
-    _.each(this.inlineListenersByCommandName, this.commandRegistered);
+    _.each(this.inlineListenersByCommandName,
+      this.commandRegistered, this);
   }
 
   destroy() {
-    _.each(this.registeredCommands, function(commandName) {
+    debug('destroying');
+    const destroyCommand = (commandName) => {
       this.rootNode.removeEventListener(commandName,
         this.handleCommandEvent, true);
-    }, this);
+    };
+
+    Object.keys(this.registeredCommands).forEach(destroyCommand);
   }
   /**
    * Add one or more command listeners associated with a selector.
@@ -324,7 +333,7 @@ class CommandRegistry {
       }
     });
 
-    _.cloneDeep(dispatchedEvent, event);
+    _.assign(dispatchedEvent, event);
     this.emitter.emit('will-dispatch', dispatchedEvent);
 
     const listenerMatchesSelector = function(listener) {
@@ -384,8 +393,9 @@ class CommandRegistry {
         this.handleCommandEvent, true);
       this.registeredCommands[commandName] = true;
     }
-    return this.registeredCommands[commandName];
+    var res = this.registeredCommands[commandName];
+    debug('command `%s` registered?', commandName, res);
+    return res;
   }
 }
-
 module.exports = CommandRegistry;

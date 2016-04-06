@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "clear-cut": "^2.0.1",
+    "debug": "^2.2.0",
     "event-kit": "^2.0.0"
   },
   "devDependencies": {

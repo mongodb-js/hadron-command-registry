@@ -1,6 +1,4 @@
 var assert = require('assert');
-
-var CommandRegistry = require('../');
 var _ = require('lodash');
 
 describe('CommandRegistry', function() {
@@ -22,6 +20,7 @@ describe('CommandRegistry', function() {
     parent.appendChild(child);
     document.querySelector('body').appendChild(parent);
 
+    var CommandRegistry = require('../');
     registry = new CommandRegistry();
     registry.attach(parent);
   });
@@ -383,7 +382,8 @@ describe('CommandRegistry', function() {
   });
   describe('::attach(rootNode)', function() {
     it('adds event listeners for any previously-added commands', function() {
-      var registry2 = new CommandRegistry;
+      var CommandRegistry = require('../');
+      var registry2 = new CommandRegistry();
       // commandSpy = jasmine.createSpy('command-callback');
       // registry2.add('.grandchild', 'command-1', commandSpy);
       grandchild.dispatchEvent(new CustomEvent('command-1', {
