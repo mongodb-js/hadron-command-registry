@@ -1,6 +1,6 @@
 # hadron-command-registry [![travis][travis_img]][travis_url] [![npm][npm_img]][npm_url]
 
-> Atom's CommandRegistry extracted to a standalone module.
+> Atom's [`CommandRegistry`](https://raw.githubusercontent.com/atom/atom/master/src/command-registry.coffee) extracted to a standalone module.
 
 ## License
 
