@@ -1,111 +1,116 @@
-var assert = require('assert');
-var _ = require('lodash');
+/* eslint one-var: 1, no-unused-expressions: 1 */
+
+var CommandRegistry = require('../');
+var _ = require('underscore-plus');
+
+var chai = require('chai');
+var spies = require('chai-spies');
+
+chai.use(spies);
+
+var expect = chai.expect;
 
 describe('CommandRegistry', function() {
-  var registry;
-  var grandchild;
-  var child;
-  var parent;
-
+  var child, grandchild, parent, registry;
+  var ref = [], registry = ref[0], parent = ref[1], child = ref[2], grandchild = ref[3];
   beforeEach(function() {
     parent = document.createElement('div');
     child = document.createElement('div');
     grandchild = document.createElement('div');
-
     parent.classList.add('parent');
     child.classList.add('child');
     grandchild.classList.add('grandchild');
-
     child.appendChild(grandchild);
     parent.appendChild(child);
-    document.querySelector('body').appendChild(parent);
 
-    var CommandRegistry = require('../');
-    registry = new CommandRegistry();
-    registry.attach(parent);
+    var testContent = document.createElement('div');
+    testContent.id = 'test-content';
+    document.querySelector('body').appendChild(testContent);
+    document.querySelector('#test-content').appendChild(parent);
+    registry = new CommandRegistry;
+    return registry.attach(parent);
   });
-
   afterEach(function() {
-    registry.destroy();
+    return registry.destroy();
   });
-
   describe('when a command event is dispatched on an element', function() {
     it('invokes callbacks with selectors matching the target', function() {
-      var called = false;
+      var called;
+      called = false;
       registry.add('.grandchild', 'command', function(event) {
-        assert.equal(this, grandchild);
-        assert.equal(event.type, 'command');
-        assert.equal(event.eventPhase, Event.BUBBLING_PHASE);
-        assert.equal(event.target, grandchild);
-        assert.equal(event.currentTarget, grandchild);
+        expect(this).to.deep.equal(grandchild);
+        expect(event.type).to.deep.equal('command');
+        expect(event.eventPhase).to.deep.equal(Event.BUBBLING_PHASE);
+        expect(event.target).to.deep.equal(grandchild);
+        expect(event.currentTarget).to.deep.equal(grandchild);
         called = true;
       });
       grandchild.dispatchEvent(new CustomEvent('command', {
         bubbles: true
       }));
-      assert.equal(called, true);
+      return expect(called).to.deep.equal(true);
     });
     it('invokes callbacks with selectors matching ancestors of the target', function() {
-      var calls = [];
-
+      var calls;
+      calls = [];
       registry.add('.child', 'command', function(event) {
-        assert.equal(this, child);
-        assert.equal(event.target, grandchild);
-        assert.equal(event.currentTarget, child);
-        calls.push('child');
+        expect(this).to.deep.equal(child);
+        expect(event.target).to.deep.equal(grandchild);
+        expect(event.currentTarget).to.deep.equal(child);
+        return calls.push('child');
       });
       registry.add('.parent', 'command', function(event) {
-        assert.equal(this, parent);
-        assert.equal(event.target, grandchild);
-        assert.equal(event.currentTarget, parent);
-        calls.push('parent');
+        expect(this).to.deep.equal(parent);
+        expect(event.target).to.deep.equal(grandchild);
+        expect(event.currentTarget).to.deep.equal(parent);
+        return calls.push('parent');
       });
       grandchild.dispatchEvent(new CustomEvent('command', {
         bubbles: true
       }));
-      assert.deepEqual(calls, ['child', 'parent']);
+      return expect(calls).to.deep.equal(['child', 'parent']);
     });
     it('invokes inline listeners prior to listeners applied via selectors', function() {
-      var calls = [];
+      var calls;
+      calls = [];
       registry.add('.grandchild', 'command', function() {
-        calls.push('grandchild');
+        return calls.push('grandchild');
       });
       registry.add(child, 'command', function() {
-        calls.push('child-inline');
+        return calls.push('child-inline');
       });
       registry.add('.child', 'command', function() {
-        calls.push('child');
+        return calls.push('child');
       });
       registry.add('.parent', 'command', function() {
-        calls.push('parent');
+        return calls.push('parent');
       });
       grandchild.dispatchEvent(new CustomEvent('command', {
         bubbles: true
       }));
-      assert.deepEqual(calls,
-        ['grandchild', 'child-inline', 'child', 'parent']);
+      return expect(calls).to.deep.equal(['grandchild', 'child-inline', 'child', 'parent']);
     });
-
     it('orders multiple matching listeners for an element by selector specificity', function() {
       var calls;
       child.classList.add('foo', 'bar');
       calls = [];
       registry.add('.foo.bar', 'command', function() {
-        calls.push('.foo.bar');
+        return calls.push('.foo.bar');
       });
       registry.add('.foo', 'command', function() {
-        calls.push('.foo');
+        return calls.push('.foo');
       });
       registry.add('.bar', 'command', function() {
-        calls.push('.bar');
+        return calls.push('.bar');
       });
       grandchild.dispatchEvent(new CustomEvent('command', {
         bubbles: true
       }));
-      assert.deepEqual(calls, ['.foo.bar', '.bar', '.foo']);
+      return expect(calls).to.deep.equal(['.foo.bar', '.bar', '.foo']);
     });
     it('stops bubbling through ancestors when .stopPropagation() is called on the event', function() {
-      var calls = [];
+      var calls, dispatchedEvent;
+      calls = [];
       registry.add('.parent', 'command', function() {
         return calls.push('parent');
       });
@@ -116,96 +121,97 @@ describe('CommandRegistry', function() {
         calls.push('child-1');
         return event.stopPropagation();
       });
-      var dispatchedEvent = new CustomEvent('command', {
+      dispatchedEvent = new CustomEvent('command', {
         bubbles: true
       });
-      // spyOn(dispatchedEvent, 'stopPropagation');
+      var spy = chai.spy.on(dispatchedEvent, 'stopPropagation');
       grandchild.dispatchEvent(dispatchedEvent);
-      assert.deepEqual(calls, ['child-1', 'child-2']);
-
-      // return expect(dispatchedEvent.stopPropagation).toHaveBeenCalled();
+      expect(calls).to.deep.equal(['child-1', 'child-2']);
+      return expect(spy).to.have.been.called();
     });
     it('stops invoking callbacks when .stopImmediatePropagation() is called on the event', function() {
-      var calls = [];
+      var calls, dispatchedEvent;
+      calls = [];
       registry.add('.parent', 'command', function() {
-        calls.push('parent');
+        return calls.push('parent');
       });
       registry.add('.child', 'command', function() {
-        calls.push('child-2');
+        return calls.push('child-2');
       });
       registry.add('.child', 'command', function(event) {
         calls.push('child-1');
-        event.stopImmediatePropagation();
-      });
-
-      var dispatchedEvent = new CustomEvent('command', {
-        bubbles: true
-      });
-      // spyOn(dispatchedEvent, 'stopImmediatePropagation');
-      grandchild.dispatchEvent(dispatchedEvent);
-      assert.deepEqual(calls, ['child-1']);
-      // return expect(dispatchedEvent.stopImmediatePropagation).toHaveBeenCalled();
-    });
-    it('forwards .preventDefault() calls from the synthetic event to the original', function() {
-      registry.add('.child', 'command', function(event) {
-        return event.preventDefault();
-      });
-      var dispatchedEvent = new CustomEvent('command', {
-        bubbles: true
-      });
-      // spyOn(dispatchedEvent, 'preventDefault');
-      grandchild.dispatchEvent(dispatchedEvent);
-      // return expect(dispatchedEvent.preventDefault).toHaveBeenCalled();
-    });
-    it('forwards .abortKeyBinding() calls from the synthetic event to the original', function() {
-      var dispatchedEvent;
-      registry.add('.child', 'command', function(event) {
-        event.abortKeyBinding();
+        return event.stopImmediatePropagation();
       });
       dispatchedEvent = new CustomEvent('command', {
         bubbles: true
       });
-      // dispatchedEvent.abortKeyBinding = jasmine.createSpy('abortKeyBinding');
+      var spy = chai.spy.on(dispatchedEvent, 'stopImmediatePropagation');
       grandchild.dispatchEvent(dispatchedEvent);
-      // return expect(dispatchedEvent.abortKeyBinding).toHaveBeenCalled();
+      expect(calls).to.deep.equal(['child-1']);
+      expect(spy).to.have.been.called();
+    });
+    it('forwards .preventDefault() calls from the synthetic event to the original', function() {
+      var dispatchedEvent;
+      registry.add('.child', 'command', function(event) {
+        return event.preventDefault();
+      });
+      dispatchedEvent = new CustomEvent('command', {
+        bubbles: true
+      });
+      var spy = chai.spy.on(dispatchedEvent, 'preventDefault');
+      grandchild.dispatchEvent(dispatchedEvent);
+      expect(spy).to.have.been.called();
+    });
+    it('forwards .abortKeyBinding() calls from the synthetic event to the original', function() {
+      var dispatchedEvent;
+      registry.add('.child', 'command', function(event) {
+        return event.abortKeyBinding();
+      });
+      dispatchedEvent = new CustomEvent('command', {
+        bubbles: true
+      });
+      dispatchedEvent.abortKeyBinding = chai.spy('abortKeyBinding');
+      grandchild.dispatchEvent(dispatchedEvent);
+      return expect(dispatchedEvent.abortKeyBinding).to.have.been.called();
     });
     it('copies non-standard properties from the original event to the synthetic event', function() {
-      var syntheticEvent = null;
+      var dispatchedEvent, syntheticEvent;
+      syntheticEvent = null;
       registry.add('.child', 'command', function(event) {
         syntheticEvent = event;
       });
-
-      var dispatchedEvent = new CustomEvent('command', {
+      dispatchedEvent = new CustomEvent('command', {
         bubbles: true
       });
-
       dispatchedEvent.nonStandardProperty = 'testing';
       grandchild.dispatchEvent(dispatchedEvent);
-      assert.equal(syntheticEvent.nonStandardProperty, 'testing');
+      expect(syntheticEvent.nonStandardProperty).to.deep.equal('testing');
     });
     it('allows listeners to be removed via a disposable returned by ::add', function() {
-      var calls = [];
-      var disposable1 = registry.add('.parent', 'command', function() {
-        calls.push('parent');
+      var calls, disposable1, disposable2;
+      calls = [];
+      disposable1 = registry.add('.parent', 'command', function() {
+        return calls.push('parent');
       });
-      var disposable2 = registry.add('.child', 'command', function() {
-        calls.push('child');
+      disposable2 = registry.add('.child', 'command', function() {
+        return calls.push('child');
       });
       disposable1.dispose();
       grandchild.dispatchEvent(new CustomEvent('command', {
         bubbles: true
       }));
-      assert.deepEqual(calls, ['child']);
+      expect(calls).to.deep.equal(['child']);
       calls = [];
       disposable2.dispose();
       grandchild.dispatchEvent(new CustomEvent('command', {
         bubbles: true
       }));
-      assert.deepEqual(calls, []);
+      return expect(calls).to.deep.equal([]);
     });
     it('allows multiple commands to be registered under one selector when called with an object', function() {
-      var calls = [];
-      var disposable = registry.add('.child', {
+      var calls, disposable;
+      calls = [];
+      disposable = registry.add('.child', {
         'command-1': function() {
           return calls.push('command-1');
         },
@@ -219,7 +225,7 @@ describe('CommandRegistry', function() {
       grandchild.dispatchEvent(new CustomEvent('command-2', {
         bubbles: true
       }));
-      assert.deepEqual(calls, ['command-1', 'command-2']);
+      expect(calls).to.deep.equal(['command-1', 'command-2']);
       calls = [];
       disposable.dispose();
       grandchild.dispatchEvent(new CustomEvent('command-1', {
@@ -228,68 +234,85 @@ describe('CommandRegistry', function() {
       grandchild.dispatchEvent(new CustomEvent('command-2', {
         bubbles: true
       }));
-      assert.deepEqual(calls, []);
+      return expect(calls).to.deep.equal([]);
     });
-    it('invokes callbacks registered with ::onWillDispatch and ::onDidDispatch', function() {
-      var sequence = [];
+    return it('invokes callbacks registered with ::onWillDispatch and ::onDidDispatch', function() {
+      var ref1, sequence;
+      sequence = [];
       registry.onDidDispatch(function(event) {
-        sequence.push(['onDidDispatch', event]);
+        return sequence.push(['onDidDispatch', event]);
       });
       registry.add('.grandchild', 'command', function(event) {
-        sequence.push(['listener', event]);
+        return sequence.push(['listener', event]);
       });
       registry.onWillDispatch(function(event) {
-        sequence.push(['onWillDispatch', event]);
+        return sequence.push(['onWillDispatch', event]);
       });
       grandchild.dispatchEvent(new CustomEvent('command', {
         bubbles: true
       }));
-      assert.equal(sequence[0][0], 'onWillDispatch');
-      assert.equal(sequence[1][0], 'listener');
-      assert.equal(sequence[2][0], 'onDidDispatch');
-      assert.equal(sequence[0][1].constructor, CustomEvent);
-      assert.equal(sequence[0][1].target, grandchild);
+      expect(sequence[0][0]).to.deep.equal('onWillDispatch');
+      expect(sequence[1][0]).to.deep.equal('listener');
+      expect(sequence[2][0]).to.deep.equal('onDidDispatch');
+      expect((sequence[0][1] === (ref1 = sequence[1][1]) && ref1 === sequence[2][1])).to.deep.equal(true);
+      expect(sequence[0][1].constructor).to.deep.equal(CustomEvent);
+      return expect(sequence[0][1].target).to.deep.equal(grandchild);
     });
   });
   describe('::add(selector, commandName, callback)', function() {
     it('throws an error when called with an invalid selector', function() {
-      var badSelector = '<>';
+      var addError, badSelector, error;
+      badSelector = '<>';
+      addError = null;
       try {
         registry.add(badSelector, 'foo:bar', function() {});
-        assert.fail('Should have thrown');
-      } catch (err) {
-        assert(err.message.indexOf(badSelector) > -1);
+      } catch (_error) {
+        error = _error;
+        addError = error;
       }
+      return expect(addError.message).to.contain(badSelector);
     });
     it('throws an error when called with a non-function callback and selector target', function() {
-      assert.throws(function() {
-        registry.add('.selector', 'foo:bar', null);
-      });
+      var addError, badCallback, error;
+      badCallback = null;
+      addError = null;
+      try {
+        registry.add('.selector', 'foo:bar', badCallback);
+      } catch (_error) {
+        error = _error;
+        addError = error;
+      }
+      return expect(addError.message).to.contain('Can\'t register a command with non-function callback.');
     });
-    it('throws an error when called with an non-function callback and object target', function() {
-      assert.throws(function() {
-        registry.add(document.body, 'foo:bar', null);
-      });
+    return it('throws an error when called with an non-function callback and object target', function() {
+      var addError, badCallback, error;
+      badCallback = null;
+      addError = null;
+      try {
+        registry.add(document.body, 'foo:bar', badCallback);
+      } catch (_error) {
+        error = _error;
+        addError = error;
+      }
+      return expect(addError.message).to.contain('Can\'t register a command with non-function callback.');
     });
   });
   describe('::findCommands({target})', function() {
-    it('returns commands that can be invoked on the target or its ancestors', function() {
+    return it('returns commands that can be invoked on the target or its ancestors', function() {
+      var commands, nonJqueryCommands;
       registry.add('.parent', 'namespace:command-1', function() {});
       registry.add('.child', 'namespace:command-2', function() {});
       registry.add('.grandchild', 'namespace:command-3', function() {});
       registry.add('.grandchild.no-match', 'namespace:command-4', function() {});
       registry.add(grandchild, 'namespace:inline-command-1', function() {});
       registry.add(child, 'namespace:inline-command-2', function() {});
-
-      var commands = registry.findCommands({
+      commands = registry.findCommands({
         target: grandchild
       });
-
-      var nonJqueryCommands = _.reject(commands, function(cmd) {
+      nonJqueryCommands = _.reject(commands, function(cmd) {
         return cmd.jQuery;
       });
-
-      assert.deepEqual(nonJqueryCommands, [
+      return expect(nonJqueryCommands).to.deep.equal([
         {
           name: 'namespace:inline-command-1',
           displayName: 'Namespace: Inline Command 1'
@@ -311,35 +334,36 @@ describe('CommandRegistry', function() {
   });
   describe('::dispatch(target, commandName)', function() {
     it('simulates invocation of the given command ', function() {
-      var called = false;
+      var called;
+      called = false;
       registry.add('.grandchild', 'command', function(event) {
-        assert.equal(this, grandchild);
-        assert.equal(event.type, 'command');
-        assert.equal(event.eventPhase, Event.BUBBLING_PHASE);
-        assert.equal(event.target, grandchild);
-        assert.equal(event.currentTarget, grandchild);
+        expect(this).to.deep.equal(grandchild);
+        expect(event.type).to.deep.equal('command');
+        expect(event.eventPhase).to.deep.equal(Event.BUBBLING_PHASE);
+        expect(event.target).to.deep.equal(grandchild);
+        expect(event.currentTarget).to.deep.equal(grandchild);
         called = true;
       });
       registry.dispatch(grandchild, 'command');
-      assert.equal(called, true);
+      return expect(called).to.deep.equal(true);
     });
-    it('returns a boolean indicating whether any listeners matched the command', function() {
+    return it('returns a boolean indicating whether any listeners matched the command', function() {
       registry.add('.grandchild', 'command', function() {});
-      assert(registry.dispatch(grandchild, 'command'), true);
-      // assert(registry.dispatch(grandchild, 'bogus'), false);
-      assert(registry.dispatch(parent, 'command'), false);
+      expect(registry.dispatch(grandchild, 'command')).to.deep.equal(true);
+      expect(registry.dispatch(grandchild, 'bogus')).to.deep.equal(false);
+      return expect(registry.dispatch(parent, 'command')).to.deep.equal(false);
     });
   });
   describe('::getSnapshot and ::restoreSnapshot', function() {
-    it('removes all command handlers except for those in the snapshot', function() {
+    return it('removes all command handlers except for those in the snapshot', function() {
+      var snapshot;
       registry.add('.parent', 'namespace:command-1', function() {});
       registry.add('.child', 'namespace:command-2', function() {});
-
-      var snapshot = registry.getSnapshot();
+      snapshot = registry.getSnapshot();
       registry.add('.grandchild', 'namespace:command-3', function() {});
-      assert.deepEqual(registry.findCommands({
+      expect(registry.findCommands({
         target: grandchild
-      }).slice(0, 3), [
+      }).slice(0, 3)).to.deep.equal([
         {
           name: 'namespace:command-3',
           displayName: 'Namespace: Command 3'
@@ -351,11 +375,10 @@ describe('CommandRegistry', function() {
           displayName: 'Namespace: Command 1'
         }
       ]);
-
       registry.restoreSnapshot(snapshot);
-      assert.deepEqual(registry.findCommands({
+      expect(registry.findCommands({
         target: grandchild
-      }).slice(0, 2), [
+      }).slice(0, 2)).to.deep.equal([
         {
           name: 'namespace:command-2',
           displayName: 'Namespace: Command 2'
@@ -364,12 +387,11 @@ describe('CommandRegistry', function() {
           displayName: 'Namespace: Command 1'
         }
       ]);
-
       registry.add('.grandchild', 'namespace:command-3', function() {});
       registry.restoreSnapshot(snapshot);
-      assert.deepEqual(registry.findCommands({
+      return expect(registry.findCommands({
         target: grandchild
-      }).slice(0, 2), [
+      }).slice(0, 2)).to.deep.equal([
         {
           name: 'namespace:command-2',
           displayName: 'Namespace: Command 2'
@@ -380,21 +402,20 @@ describe('CommandRegistry', function() {
       ]);
     });
   });
-  describe('::attach(rootNode)', function() {
-    it('adds event listeners for any previously-added commands', function() {
-      var CommandRegistry = require('../');
-      var registry2 = new CommandRegistry();
-      // commandSpy = jasmine.createSpy('command-callback');
-      // registry2.add('.grandchild', 'command-1', commandSpy);
+  return describe('::attach(rootNode)', function() {
+    return it('adds event listeners for any previously-added commands', function() {
+      var registry2 = new CommandRegistry;
+      var commandSpy = chai.spy('command-callback');
+      registry2.add('.grandchild', 'command-1', commandSpy);
       grandchild.dispatchEvent(new CustomEvent('command-1', {
         bubbles: true
       }));
-      // expect(commandSpy).not.toHaveBeenCalled();
+      expect(commandSpy).not.to.have.been.called();
       registry2.attach(parent);
       grandchild.dispatchEvent(new CustomEvent('command-1', {
         bubbles: true
       }));
-      // expect(commandSpy).toHaveBeenCalled();
+      return expect(commandSpy).to.have.been.called();
     });
   });
 });
